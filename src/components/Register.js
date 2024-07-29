@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -11,15 +12,10 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5033/register", {
-        name,
-        surname,
-        email,
-        password,
-      });
-      setMessage(response.data.message);
+      await createUserWithEmailAndPassword(auth, email, password);
+      setMessage("User created successfully");
     } catch (error) {
-      setMessage(error.response.data.error);
+      setMessage(error.message);
     }
   };
 
@@ -28,6 +24,7 @@ const Register = () => {
       <h2>Register</h2>
       <div>
         <input
+          className="input-register"
           placeholder="Enter Your name..."
           type="text"
           value={name}
@@ -37,6 +34,7 @@ const Register = () => {
       </div>
       <div>
         <input
+          className="input-register"
           placeholder="Enter Your surname..."
           type="text"
           value={surname}
@@ -46,6 +44,7 @@ const Register = () => {
       </div>
       <div>
         <input
+          className="input-register"
           placeholder="Enter Your email..."
           type="email"
           value={email}
@@ -55,6 +54,7 @@ const Register = () => {
       </div>
       <div>
         <input
+          className="input-register"
           placeholder="Enter Your password..."
           type="password"
           value={password}
@@ -62,7 +62,9 @@ const Register = () => {
           required
         />
       </div>
-      <button type="submit">Register</button>
+      <button type="submit" className="button-register">
+        Register
+      </button>
       <p>{message}</p>
     </form>
   );

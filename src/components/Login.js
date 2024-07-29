@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 const Login = ({ setToken }) => {
@@ -10,24 +10,29 @@ const Login = ({ setToken }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const auth = getAuth();
     try {
-      const response = await axios.post("http://localhost:5033/login", {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
         email,
         password,
-      });
-      setToken(response.data.token, response.data.name);
-      setMessage(response.data.message);
-      navigate("/user"); // Przekierowanie po zalogowaniu
+      );
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+      setToken(token, user.email, user.uid);
+      setMessage("Logged in successfully");
+      navigate("/user");
     } catch (error) {
-      setMessage(error.response.data.error);
+      setMessage(error.message);
     }
   };
 
   return (
-    <form onSubmit={handleLogin}>
+    <form onSubmit={handleLogin} className="form-container">
       <h2>Login</h2>
       <div>
         <input
+          className="input-login"
           placeholder="Enter Your email..."
           type="email"
           value={email}
@@ -37,6 +42,7 @@ const Login = ({ setToken }) => {
       </div>
       <div>
         <input
+          className="input-login"
           placeholder="Enter Your password..."
           type="password"
           value={password}
@@ -44,7 +50,9 @@ const Login = ({ setToken }) => {
           required
         />
       </div>
-      <button type="submit">Login</button>
+      <button className="button-login" type="submit">
+        Login
+      </button>
       <p>{message}</p>
     </form>
   );

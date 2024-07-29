@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import useToDoList from "../hooks/useToDoList";
 
-const UserPage = ({ handleLogout, userName, token }) => {
+const UserPage = ({ handleLogout, userName, userId }) => {
   const [newTask, setNewTask] = useState("");
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingTaskName, setEditingTaskName] = useState("");
@@ -14,13 +14,14 @@ const UserPage = ({ handleLogout, userName, token }) => {
     moveTaskDown,
     loading,
     error,
-  } = useToDoList(token);
+  } = useToDoList(userId);
 
   function handleInputChange(event) {
     setNewTask(event.target.value);
   }
 
-  async function handleAddTask() {
+  async function handleAddTask(e) {
+    e.preventDefault();
     await addTask(newTask);
     setNewTask("");
   }
@@ -52,17 +53,18 @@ const UserPage = ({ handleLogout, userName, token }) => {
       <button onClick={handleLogout}>Logout</button>
       <div className="to-do-list">
         <h1>To-Do List</h1>
-        <div>
+        <form onSubmit={handleAddTask}>
           <input
             type="text"
             placeholder="Enter new task..."
             value={newTask}
             onChange={handleInputChange}
+            className="input-box"
           />
-          <button className="add-button" onClick={handleAddTask}>
+          <button className="button" type="submit">
             Add
           </button>
-        </div>
+        </form>
         <ol>
           {tasks.map((task, index) => (
             <li key={task.id}>

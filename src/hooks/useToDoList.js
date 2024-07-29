@@ -1,18 +1,48 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
 
-const useToDoList = (token) => {
+const useToDoList = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-  const fetchTasks = async () => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        fetchTasks(user.uid);
+      } else {
+        setUserId(null);
+        setTasks([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const fetchTasks = async (userId) => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5033/tasks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTasks(response.data);
+      console.log("Fetching tasks for user: ", userId); // Debugging statement
+      const q = query(collection(db, "tasks"), where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const tasksData = querySnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
+      setTasks(tasksData);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -24,19 +54,12 @@ const useToDoList = (token) => {
   const addTask = async (taskName) => {
     if (taskName.trim() !== "") {
       try {
-        const response = await axios.post(
-          "http://localhost:5033/tasks",
-          {
-            name: taskName,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        setTasks((prevTasks) => [
-          ...prevTasks,
-          { id: response.data.id, name: taskName },
-        ]);
+        const newTask = {
+          name: taskName,
+          userId: userId,
+        };
+        const docRef = await addDoc(collection(db, "tasks"), newTask);
+        setTasks((prevTasks) => [...prevTasks, { id: docRef.id, ...newTask }]);
       } catch (err) {
         setError(err.message);
       }
@@ -45,9 +68,7 @@ const useToDoList = (token) => {
 
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`http://localhost:5033/tasks/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await deleteDoc(doc(db, "tasks", id));
       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
     } catch (err) {
       setError(err.message);
@@ -56,13 +77,8 @@ const useToDoList = (token) => {
 
   const updateTask = async (id, updatedName) => {
     try {
-      await axios.put(
-        `http://localhost:5033/tasks/${id}`,
-        { name: updatedName },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const taskDoc = doc(db, "tasks", id);
+      await updateDoc(taskDoc, { name: updatedName });
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === id ? { ...task, name: updatedName } : task,
@@ -94,10 +110,6 @@ const useToDoList = (token) => {
       setTasks(updatedTasks);
     }
   };
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
 
   return {
     tasks,
